@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/appimg.png",
     "scheme": "storestories",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "icon": "./assets/appimg.png"
     },
@@ -17,8 +17,6 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "CAMERA",
-        "READ_MEDIA_IMAGES",
         "CAMERA",
         "READ_MEDIA_IMAGES"
       ],

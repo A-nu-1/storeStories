@@ -20,18 +20,25 @@ export const formatTimeAgo = (createdAt: string): string => {
   return `${Math.floor(hours / 24)}d ago`;
 };
 
-export const formatTimeRemaining = (expiresAt: string): string => {
-  const now = new Date();
+export const formatTimeRemaining = (
+  expiresAt: string,
+  currentTime = Date.now(),
+): string => {
   const expires = parseUTC(expiresAt);
-  const diff = expires.getTime() - now.getTime();
+  const diff = expires.getTime() - currentTime;
 
   if (diff <= 0) return "Expired";
 
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor(
+    (diff % (1000 * 60 * 60)) / (1000 * 60),
+  );
+  const hours = Math.floor(
+    diff / (1000 * 60 * 60),
+  );
 
   if (hours > 0) {
     return `${hours}h ${minutes}m left`;
   }
+
   return `${minutes}m left`;
 };

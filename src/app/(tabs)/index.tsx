@@ -17,15 +17,20 @@ import { Post, usePosts } from "@/hooks/usePosts";
 import { formatTimeAgo, formatTimeRemaining } from "@/lib/date-helper";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface PostCardProps {
   post: Post;
   currentUserId?: string;
+  currentTime: number;
 }
 
-const PostCard = ({ post, currentUserId }: PostCardProps) => {
+const PostCard = ({
+  post,
+  currentUserId,
+  currentTime,
+}: PostCardProps) => {
   const postUser = post.profiles;
   const isOwnPost = post.user_id === currentUserId;
   return (
@@ -57,7 +62,7 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
         {/* Post content */}
         <View style={styles.timeRemainingBadge}>
           <Text style={styles.timeRemainingText}>
-            {formatTimeRemaining(post.expires_at)}
+            {formatTimeRemaining(post.expires_at, currentTime)}
           </Text>
         </View>
       </View>
@@ -75,7 +80,7 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
         )}
         <Text style={styles.postInfo}>
           {isOwnPost ? "Your Post" : `${postUser?.name}' post`} • Expires in{" "}
-          {formatTimeRemaining(post.expires_at)}
+          {formatTimeRemaining(post.expires_at, currentTime)}
         </Text>
       </View>
     </View>
@@ -93,6 +98,16 @@ export default function Index() {
   const router = useRouter();
   const { createPost, posts, refreshPosts } = usePosts();
   const { user } = useAuth();
+
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Check if user has an active post
   const userActivePost = posts.find(
@@ -183,15 +198,22 @@ export default function Index() {
     }
   };
 
-  const renderPost = ({ item }: { item: Post }) => (
-    <PostCard post={item} currentUserId={user?.id} />
-  );
+ const renderPost = ({ item }: { item: Post }) => (
+  <PostCard
+    post={item}
+    currentUserId={user?.id}
+    currentTime={currentTime}
+  />
+);
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom", "top"]}>
       {/* LIST */}
       <FlatList
-        data={posts}
+        data={posts.filter(
+          (post) => new Date(post.expires_at).getTime() > currentTime,
+        )}
+        extraData={currentTime}
         renderItem={renderPost}
         keyExtractor={(item) => item.id}
         contentContainerStyle={
@@ -204,7 +226,7 @@ export default function Index() {
       />
 
       <TouchableOpacity style={styles.fab} onPress={showImagePicker}>
-        <Text style={styles.fabText}>{hasActivePost ? "↻" : "+"}</Text>
+        <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
       <Modal
@@ -217,19 +239,19 @@ export default function Index() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Create a post</Text>
             <TouchableOpacity
-              style={[styles.modalButton, styles.postButton]}
+              style={[styles.imagePickerButton, styles.postButton]}
               onPress={takePhoto}
             >
               <Text style={styles.postButtonText}>Take photo</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modalButton, styles.postButton]}
+              style={[styles.imagePickerButton, styles.postButton]}
               onPress={pickImage}
             >
               <Text style={styles.postButtonText}>Choose from library</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modalButton, styles.cancelButton]}
+              style={[styles.imagePickerButton, styles.cancelButton]}
               onPress={() => setShowImageOptions(false)}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -241,10 +263,7 @@ export default function Index() {
       <Modal visible={showPreview} transparent animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {" "}
-              {hasActivePost ? "Replace Your Post" : "Preview Your Post"}
-            </Text>
+            <Text style={styles.modalTitle}> Preview Your Post</Text>
             {previewImage && (
               <Image
                 cachePolicy={"none"}
@@ -282,9 +301,7 @@ export default function Index() {
                 {isUploading ? (
                   <ActivityIndicator size={24} color="#fff" />
                 ) : (
-                  <Text style={styles.postButtonText}>
-                    {hasActivePost ? "Replace" : "Post"}
-                  </Text>
+                  <Text style={styles.postButtonText}>Post</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -365,6 +382,14 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: "row",
     gap: 12,
+  },
+  imagePickerButton: {
+    width: "100%",
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
   },
   modalButton: {
     flex: 1,
